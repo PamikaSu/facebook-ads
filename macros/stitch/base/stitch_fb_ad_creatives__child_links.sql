@@ -99,3 +99,42 @@ aggregated as (
 select * from aggregated
 
 {% endmacro %}
+
+{% macro bigquery__stitch_fb_ad_creatives__child_links() %}
+
+
+with base as (
+
+    select * from {{ var('ad_creatives_table') }}
+
+),
+
+child_attachment_links as (
+
+  select
+    base.id,
+    base._sdc_batched_at,
+    attachments.value.link as child_link
+  from base
+  cross join unnest(base.object_story_spec.link_data.child_attachments) as attachments
+  where lower(attachments.value.link) like '%utm%'
+
+),
+
+aggregated as (
+
+    select distinct
+        id as creative_id,
+
+        first_value(child_link) over (partition by id
+            order by _sdc_batched_at
+            rows between unbounded preceding and unbounded following)
+            as child_link
+
+    from child_attachment_links
+
+)
+
+select * from aggregated
+
+{% endmacro %}

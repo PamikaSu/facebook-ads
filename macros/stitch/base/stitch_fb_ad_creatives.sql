@@ -19,7 +19,7 @@ child_links as (
 
 ),
 
-links_joined as (
+links_joined_pre as (
 
     select
 
@@ -32,13 +32,27 @@ links_joined as (
           nullif({{ facebook_ads.nested_field('base.object_story_spec', ['link_data', 'link']) }}, '')
         )) as url,
 
-        lower(coalesce(
-            nullif(url_tags, {{ dbt_utils.split_part('url', "'?'", 2) }}), '')
-        ) as url_tags
+        url_tags
 
     from base
     left join child_links
         on base.id = child_links.creative_id
+
+),
+
+links_joined as (
+
+    select
+
+        creative_id,
+
+        url,
+
+        lower(coalesce(
+            nullif(url_tags, {{ dbt_utils.split_part('url', "'?'", 2) }}), '')
+        ) as url_tags
+
+    from links_joined_pre
 
 ),
 
